@@ -1,6 +1,8 @@
 name: genui_openrouter
 description: A GenUI transport client for OpenRouter, supporting streaming, fallbacks, and advanced LLM parameters.
 version: 0.1.0
+repository: https://github.com/idipak/genui_openrouter
+issue_tracker: https://github.com/idipak/genui_openrouter/issues
 
 environment:
   sdk: ^3.0.0

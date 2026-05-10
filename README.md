@@ -16,8 +16,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  genui_openrouter:
-    path: ../genui_openrouter # If local, or use git/pub
+  genui_openrouter: ^0.1.0
 ```
 
 ## Usage
