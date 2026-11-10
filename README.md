@@ -17,9 +17,9 @@ Add the package to your `pubspec.yaml`, together with the A2UI packages that rea
 ```yaml
 dependencies:
   genui_openrouter: ^0.1.0
-  a2ui_agent: ^0.1.0
-  a2ui_core: ^0.5.0
-  a2ui_flutter: ^0.1.0
+  a2ui_agent: ^0.2.0
+  a2ui_core: ^0.6.0
+  a2ui_flutter: ^0.2.0
 ```
 
 ## Usage

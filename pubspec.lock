@@ -13,18 +13,18 @@ packages:
     dependency: "direct main"
     description:
       name: a2ui_agent
-      sha256: f51794d9b89ccdf0633174dbac27bd6398ddfeb36f4b7bf5b6d749ca6bec5a05
+      sha256: "5b454c4b640d72e3cd642b88ac946152594c282c2c1b7b320eb3798cf7aa488a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.2.0"
   a2ui_core:
     dependency: "direct main"
     description:
       name: a2ui_core
-      sha256: "72457ec49de30f1503959a96a9f90dfb4cc5d5c35016a499a8491a17f3114b93"
+      sha256: "69e8b0cf911b7d7ed0f7a6e39a8422ce0ca7a4d967bb07046218c294b27fac0e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.0"
+    version: "0.6.0"
   analyzer:
     dependency: transitive
     description:
