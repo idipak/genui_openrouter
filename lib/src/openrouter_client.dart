@@ -1,34 +1,68 @@
 import 'dart:convert';
+import 'package:a2ui_agent/a2ui_agent.dart';
+import 'package:a2ui_core/a2ui_core.dart';
+import 'package:genai_primitives/genai_primitives.dart'
+    show ChatMessage, ChatMessageRole;
 import 'package:http/http.dart' as http;
-import 'package:genui/genui.dart';
 import 'openrouter_config.dart';
 
-/// A GenUI-compatible client for OpenRouter.
+/// An A2UI client for OpenRouter.
 ///
 /// This client handles streaming responses, model fallbacks, and
-/// advanced parameter configuration while integrating seamlessly with
-/// GenUI's PromptBuilder and Transport architecture.
+/// advanced parameter configuration. Its system prompt teaches the model
+/// an A2UI catalog, and [requestProcessor] reads the model's replies back
+/// into A2UI messages for a renderer.
 class GenUIOpenRouterClient {
   final OpenRouterConfig config;
+
+  /// Prompts the model for the catalog and parses its replies.
+  ///
+  /// For each reply, open a stream with
+  /// `requestProcessor.openContinuingStream()`, feed it the chunks of
+  /// [generateStream], and pass the A2UI messages it returns to an A2UI
+  /// `MessageProcessor`. Each reply creates new surfaces, so it is checked on
+  /// its own.
+  final A2uiRequestProcessor requestProcessor;
+
   final http.Client _httpClient;
-  final PromptBuilder _promptBuilder;
+  final List<String> _systemPromptFragments;
 
   /// Creates a new [GenUIOpenRouterClient].
   ///
-  /// [catalog] is required for GenUI component-aware prompting.
+  /// [catalog] is the A2UI catalog the model builds UI from, such as
+  /// `a2ui_flutter`'s `v0_9.basicCatalog()`. Replies use the A2UI protocol
+  /// version the catalog targets, or v0.9 if it targets none.
   /// [systemPromptFragments] defines the assistant's persona.
   GenUIOpenRouterClient({
     required this.config,
-    required Catalog catalog,
+    required CatalogApi catalog,
     List<String> systemPromptFragments = const [],
     http.Client? httpClient,
   })  : _httpClient = httpClient ?? http.Client(),
-        _promptBuilder = PromptBuilder.chat(
-          catalog: catalog,
-          systemPromptFragments: systemPromptFragments,
+        _systemPromptFragments = systemPromptFragments,
+        requestProcessor = A2uiGenerator(
+          catalogs: [CatalogConfig(catalog)],
+          inferenceFormatFactory: const DirectJsonFormatFactory(
+            allowedMessages: ['createSurface', 'updateComponents'],
+            bufferIncompleteComponents: true,
+          ),
+        ).createProcessor(
+          A2uiRendererCapabilities.forCatalogIds(
+            [catalog.id],
+            version: catalog.protocolVersion ?? A2uiProtocolVersion.v0_9,
+          ),
         );
 
-  /// Maps GenUI roles to OpenRouter roles.
+  late final String _systemPrompt = [
+    ..._systemPromptFragments,
+    'IMPORTANT: DO NOT update or modify surfaces created in previous turns. '
+        'If the UI needs to change, you MUST create a NEW surface with a new '
+        'unique `surfaceId`. You may only use `updateComponents` to populate '
+        'the components of a freshly created surface.',
+    requestProcessor.promptSnippet,
+  ].map((fragment) => fragment.trim()).join('\n\n');
+
+  /// Maps chat message roles to OpenRouter roles.
   String _mapRole(ChatMessageRole role) {
     return switch (role) {
       ChatMessageRole.system => 'system',
@@ -44,10 +78,10 @@ class GenUIOpenRouterClient {
   ) {
     final messages = <Map<String, dynamic>>[];
 
-    // System prompt from GenUI
+    // System prompt with the A2UI instructions
     messages.add({
       'role': 'system',
-      'content': _promptBuilder.systemPromptJoined(),
+      'content': _systemPrompt,
     });
 
     // History
@@ -68,6 +102,9 @@ class GenUIOpenRouterClient {
   }
 
   /// Generates a stream of text chunks from OpenRouter.
+  ///
+  /// The chunks are the model's reply as written, A2UI blocks included. Read
+  /// them into text and A2UI messages with a stream from [requestProcessor].
   ///
   /// [models] overrides the default models in [config].
   /// [params] allows fine-tuning the LLM output.
